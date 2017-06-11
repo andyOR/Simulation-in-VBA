@@ -96,7 +96,7 @@ Utilization of Repair Technician – 0.198
 
 2). Description of the Code
 Ans.
- a). Modify the model so that there are k ? 1 spare components available instead of 1.  That is, k should be a variable that can be set in the code. The components are still repaired one-at-a-time by a single repair technician.
+ a). Modify the model so that there are k > 1 spare components available instead of 1.  That is, k should be a variable that can be set in the code. The components are still repaired one-at-a-time by a single repair technician.
      Explanation: In the Code, k is set as a variable which can be inserted in the code. k are spared components and S equals k +1. 
 b). Collect statistics on the utilization of the repair technician. Hint: It will be helpful to have a variable, say Busy, that is 0 when the technician is idle, and 1 when busy. The utilization is the time-average value of this variable.
 
