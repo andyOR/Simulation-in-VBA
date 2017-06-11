@@ -1,5 +1,3 @@
-                                              SC & IS 545                                           Aks5800
-Homework 1
 1). Code for Simulation
 Dim Clock As Double         ' simulation clock
 Dim NextFailure As Double   ' time of next failure event
