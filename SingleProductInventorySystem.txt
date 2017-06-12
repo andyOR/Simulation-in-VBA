@@ -1,4 +1,4 @@
-' This is a VBA program for the simulation of an inventory system
+' This is a VBA program for the simulation of an inventory system discussed in class by Prof. Barton
 
 Public Sub Inventory_Main()
     Dim i As Integer
