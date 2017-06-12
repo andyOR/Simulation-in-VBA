@@ -1,0 +1,227 @@
+' This is a VBA program for the simulation of an inventory system
+
+Public Sub Inventory_Main()
+    Dim i As Integer
+    Dim num_policies As Integer
+    
+    'Allocate spaces for the arrays.
+    ReDim prob_distrib_demand(1 To 25) As Double
+    ReDim time_next_event(1 To 4) As Double
+        
+    seed = Worksheets("Inventory").Range("Inventory.Seed").Value
+    
+    num_events = 4
+     
+    With Worksheets("Inventory")
+        initial_inv_level = .Cells(3, 2)
+        num_values_demand = .Cells(4, 2)
+        prob_distrib_demand(1) = .Cells(5, 2)
+        prob_distrib_demand(2) = .Cells(5, 3)
+        prob_distrib_demand(3) = .Cells(5, 4)
+        prob_distrib_demand(4) = .Cells(5, 5)
+        mean_interdemand = .Cells(6, 2)
+        minlag = .Cells(7, 2)
+        maxlag = .Cells(7, 3)
+        num_months = .Cells(8, 2)
+        
+        setup_cost = .Cells(10, 2)
+        incremental_cost = .Cells(11, 2)
+        holding_cost = .Cells(12, 2)
+        Sales_cost = .Cells(13, 2)
+        
+        num_policies = .Cells(15, 2)
+        lowerloss = 0
+        higherloss = 0.05
+    End With
+    
+    'Run simulation varying the inventory policy.
+    For i = 1 To num_policies
+        row = i + 18
+    
+        'Initialize the random seeds
+        Call InitializeRNSeed
+
+        'Read the inventory policy and initialize the simulation.
+        smalls = Worksheets("Inventory").Cells(row, 2)
+        bigs = Worksheets("Inventory").Cells(row, 3)
+       
+        Call initialize
+        
+        'Run the simulation until it terminates after an end-simulation event (type
+        '  3) occurs.
+        
+        Do
+            'Determine the next event.
+            Call timing
+            
+            'Update time-average statistical accumulation.
+            Call update_time_avg_stats
+            
+            'Invoke the appropriate event function
+                    Select Case next_event_type
+                    Case 1
+                        Call order_arrival
+                    Case 2
+                        Call demand
+                    Case 4
+                        Call evaluate
+                    Case 3
+                        Call report
+                    End Select
+        
+        'If the event just executed was not the end-simulation event (type 3),
+        '  continue simulating. Otherwise, end the simulation for the current
+        '  (s, S) pair adn go on to  the next pair (if any).
+        Loop While next_event_type <> 3
+               
+    
+    Call report  'for delete!!!
+    
+    Next i
+        
+End Sub
+
+Private Static Sub initialize() 'Initialization function.
+
+    'Initialize the simulation clock
+    sim_time = 0#
+    
+    'Initialize the state variables.
+    inv_level = initial_inv_level
+    time_last_event = 0#
+    
+    'Initialize the statistical counters.
+    total_ordering_cost = 0#
+    area_holding = 0#
+    Sales_cost = 0#
+    
+    'Initialize event list. Since no order is outstanding, the order-
+    '  arrival event is eliminated from consideration.
+    time_next_event(1) = 1E+30
+    time_next_event(2) = sim_time + Expon(mean_interdemand, seed)
+    time_next_event(3) = num_months
+    time_next_event(4) = 0
+
+End Sub
+
+Private Sub order_arrival() 'Order arrival event function.
+
+    'Increment the inventory level by the amount ordered.
+    inv_level = inv_level + amount
+    
+    'Since no order is now outstanding, eliminate the order-arrival
+    '  event from consideration.
+    time_next_event(1) = 1E+30
+End Sub
+
+Private Sub demand() 'Demand event function.
+
+    'Decrement the inventory level by a generated demand size.
+    inv_level = inv_level - random_integer(prob_distrib_demand, seed)
+    
+    'Schedule the time of the next demand.
+    time_next_event(2) = sim_time + Expon(mean_interdemand, seed)
+    
+End Sub
+
+Private Sub evaluate()
+
+    'Check whether the inventory level is less than smalls.
+    If inv_level < smalls Then
+        
+        'The inventory level is less than smalls, so place an order for
+        '  the appropriate amount.
+        amount = bigs - inv_level
+        amount = amount - Round(amount * Uniform(lowerloss, higherloss, seed))
+        total_ordering_cost = total_ordering_cost + setup_cost + incremental_cost * amount
+        
+        'Schedule the arrival of the order.
+        time_next_event(1) = sim_time + Uniform(minlag, maxlag, seed)
+    End If
+    
+    'Regardless of the place-order decision, schedule the next inventory evaluation.
+    time_next_event(4) = sim_time + 1#
+End Sub
+
+Private Sub report()
+    'Compute and write estimates of desired measures of performance.
+    
+    Dim avg_holding_cost As Double
+    Dim avg_ordering_cost As Double
+    Dim avg_sales_cost As Double
+    
+    avg_ordering_cost = total_ordering_cost / num_months
+    avg_holding_cost = holding_cost * area_holding / num_months
+    avg_sales_cost = Sales_cost / num_months
+    
+    With Worksheets("Inventory")
+        .Cells(row, 4) = avg_ordering_cost + avg_holding_cost + avg_sales_cost
+        .Cells(row, 5) = avg_ordering_cost
+        .Cells(row, 6) = avg_holding_cost
+        .Cells(row, 7) = avg_sales_cost
+    End With
+               
+End Sub
+
+Private Sub update_time_avg_stats()
+    Dim time_since_last_event As Double
+    
+    'Compute time since last event, and update last-event-time marker.
+    time_since_last_event = sim_time - time_last_event
+    time_last_event = sim_time
+    
+    'Determine the status of the inventory level during the previous interval.
+    '  If the inventory level is during the previous interval was negative, update
+    '  area_shortage. If it was positive, update area_holding. If it was zero, no
+    '  update is needed.
+    
+    If inv_level < 0 Then
+        Sales_cost = Sales_cost + inv_level * (-6)
+    ElseIf inv_level > 0 Then
+        area_holding = area_holding + inv_level * time_since_last_event
+    End If
+    
+End Sub
+
+
+Private Sub timing() ' Timing function
+    
+    Dim i As Integer
+    Dim min_time_next_event As Double
+    
+    min_time_next_event = 1E+29
+    next_event_type = 0
+    
+    'Determine the event type of the next event to occur.
+    For i = 1 To num_events
+        If time_next_event(i) < min_time_next_event Then
+            min_time_next_event = time_next_event(i)
+            next_event_type = i
+        End If
+    Next i
+        
+    'Check to see whether the event list is empty.
+    If next_event_type = 0 Then
+    
+        'The event list is empty, so stop the simulation.
+        Call MsgBox("Event list empty at time " & sim_time, 32, "Warning")
+        End
+        
+    End If
+        
+    'The event list is not empty, so advance the simulation clock.
+    sim_time = min_time_next_event
+        
+End Sub
+
+		Average	Average	Average	Average
+Policies		Total Cost	Ordering Cost	Holding Cost	Sales_cost
+( 20 ,	 40 )	          449.98	   97.74	    8.94	343.30
+( 20 ,	 60 )	          301.69	   87.43	   17.20	197.05
+( 20 ,	 80 )	          240.96	   84.16	   26.01	130.80
+( 20 ,	 100 )	          200.13	   82.13	   36.65	81.35
+( 40 ,	 60 )	          158.27	   97.52	   25.50	35.25
+( 40 ,	 80 )	          156.20	   88.31	   34.54	33.35
+( 40 ,	 100 )	          173.76	   84.49	   43.51	45.75
+( 60 ,	 80 )	          143.96	   98.02	   44.79	1.15
+( 60 ,	 100 )	          146.27	   88.81	   53.86	3.60
