@@ -1,0 +1,155 @@
+' This is a VBA program for the simulation of an single server queueing system discussed in class by Prof. Barton
+Public Sub MM1_main()  '/* Main function. */
+
+    '/* Read input parameters. */
+    STREAM_INTERARRIVAL = Worksheets("MM1").Range("MM1.SeedInterArrival").value
+    STREAM_SERVICE = Worksheets("MM1").Range("MM1.SeedServiceTime").value
+    
+    mean_interarrival = Worksheets("MM1").Range("MM1.MeanInterArrival").value
+    mean_service = Worksheets("MM1").Range("MM1.MeanServiceTime").value
+    num_delays_required = Worksheets("MM1").Range("MM1.NumOfCustomers").value
+
+    'Initialize the random seeds
+    Call InitializeRNSeed
+    
+    '/* Initialize simlib */
+    Call init_simlib
+    
+    '/* Set maxatr = max(maximum number of attributes per record, 4) */
+    maxatr = 4   '/* NEVER SET maxatr TO BE SMALLER THAN 4. ** Note: Switched with next line.
+
+    '/* Initialize the model. */
+    Call init_model
+
+    '/* Run the simulation while more delays are still needed. */
+    Do While (num_custs_delayed < num_delays_required)
+
+        '/* Determine the next event. */
+        Call timing
+
+        '/* Invoke the appropriate event function. */
+        Select Case next_event_type
+        Case EVENT_ARRIVAL:
+            Call arrive
+        Case EVENT_DEPARTURE:
+            Call depart
+        End Select
+        
+    Loop
+
+    '/* Invoke the report generator and end the simulation. */
+    Call report
+
+End Sub
+
+Private Static Sub init_model()  '/* Initialization function. */
+    num_custs_delayed = 0
+    
+    Call event_schedule(sim_time + Expon(mean_interarrival, STREAM_INTERARRIVAL), EVENT_ARRIVAL)
+End Sub
+
+
+Private Sub arrive() '/* Arrival event function. */
+
+    '/* Schedule next arrival. */
+
+    Call event_schedule(sim_time + Expon(mean_interarrival, STREAM_INTERARRIVAL), EVENT_ARRIVAL)
+
+    '/* Check to see whether server is busy (i.e., list SERVER contains a
+    '   record). */
+
+    If (list_size(LIST_SERVER) = 1) Then
+
+        '/* Server is busy, so store time of arrival of arriving customer at end
+        '   of list LIST_QUEUE. */
+
+        transfer(1) = sim_time
+        Call list_file((LAST), LIST_QUEUE)
+        
+    Else
+        '/* Server is idle, so start service on arriving customer, who has a
+        '   delay of zero.  (The following statement IS necessary here.) */
+
+        Call sampst(0#, SAMPST_DELAYS)
+
+        '/* Increment the number of customers delayed. */
+
+        num_custs_delayed = num_custs_delayed + 1
+
+        '/* Make server busy by filing a dummy record in list LIST_SERVER. */
+
+        Call list_file((FIRST), LIST_SERVER)
+
+        '/* Schedule a departure (service completion). */
+        Call event_schedule(sim_time + Expon(mean_service, STREAM_SERVICE), EVENT_DEPARTURE)
+    
+    End If
+
+End Sub
+
+
+Private Sub depart()  '/* Departure event function. */
+
+    '/* Check to see whether queue is empty. */
+
+    If (list_size(LIST_QUEUE) = 0) Then
+
+        '/* The queue is empty, so make the server idle and leave the departure
+        '   (service completion) event out of the event list. (It is currently
+        '   not in the event list, having just been removed by timing before
+        '   coming here.) */
+
+        Call list_remove(FIRST, LIST_SERVER)
+
+    Else
+
+        '/* The queue is nonempty, so remove the first customer from the queue,
+        '   register delay, increment the number of customers delayed, and
+        '   schedule departure. */
+
+        Call list_remove(FIRST, LIST_QUEUE)
+        Call sampst(sim_time - transfer(1), SAMPST_DELAYS)
+        num_custs_delayed = num_custs_delayed + 1
+        Call event_schedule(sim_time + Expon(mean_service, STREAM_SERVICE), EVENT_DEPARTURE)
+    End If
+End Sub
+
+
+Private Sub report()  '/* Report generator function. */
+    '/* Get and write out estimates of desired measures of performance. */
+
+    With Worksheets("MM1")
+        Call out_sampst("MM1", 15, 1, SAMPST_DELAYS, SAMPST_DELAYS)
+        Call out_filest("MM1", 21, 1, LIST_QUEUE, LIST_SERVER)
+            .Cells(25, 2) = sim_time
+    End With
+
+End Sub
+
+
+Sub test()
+    maxatr = 10
+    Dim row As master
+    Dim row2 As master
+        Set row = New master
+        Set row2 = New master
+        Set row.pr = row2
+        Set row.sr = Nothing
+    
+    Dim postest As Integer
+    postest = (row.value(1) > -2)
+    If postest Then maxatr = 2
+    
+    row.value(1) = 6
+    postest = (row.value(1) = 5)
+        If postest Then maxatr = 6
+End Sub
+
+Sub test2()
+Dim j As Integer
+Dim k As Double
+j = 2
+k = 3#
+Call timest((j), k)
+End Sub
+

@@ -14,11 +14,23 @@ This course provided an introduction to Monte Carlo and discrete-event simulatio
 #### c. Average utilization of Repair technicians in 100 replications?
 
 ### 2. Single Product Inventory System
-#### This case introduced simulation of inventory system. It performed simulation for scenarios with different inventory policies and cost associated with each one of them. It included upper level for inventory specifying maximum holding limitations(S) and lower level at which new order for inventory will be placed (s). A periodic evaluation is performed for assessment of inventory level. The system had different fixed demand sizes from customers with mean interdemand time. The inventory system associated costs for ordering, holding and sales cost.
+#### This case introduced simulation of inventory system. It performed simulation for scenarios with different inventory policies and cost associated with each one of them. It included upper level for inventory specifying maximum holding limitations(S) and lower level (s) at which new order for inventory will be placed. A periodic evaluation is performed for assessment of inventory level. The system had different fixed demand sizes from customers with mean interdemand time. The inventory system associated costs for ordering, holding and sales cost.
 
 #### Questions answered through this simulation case.
 #### a. Which is the optimal policy (s,S) for inventory?
 #### b. Cost associated with each policies?
 #### c. which policies cost back orders and which ones are safe? 
+
+### 3. M/M/1 Queue Simulation
+#### This simulation represents the queue length in a system having single server, where arrivals are determined by a Poisson process and job service time have an exponential distribution. The variables used in the system:
+#### Entities - Customers
+#### Resources - server and queue
+#### Attributes - arrival and service time
+#### Performance - Avg Q(t): number of customers in queue at time t, Avg D(t): waiting time for ith customer, Avg B(t): server utilization
+
+#### Questions answered through this simulation case.
+#### a. What is the average wait time in queue? (CTS or DTS)
+#### b. What is the average queue length? (CTS or DTS)
+#### c. What is the server utilization in the system? (CTS)
 
 
