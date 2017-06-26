@@ -1,0 +1,303 @@
+' This is a VBA program for the simulation of an Multi teller bank queueing system discussed in class by Prof. Barton
+Public Sub MTBank_main() '/* Main function. */
+
+
+    '/* Read input parameters. */
+    STREAM_INTERARRIVAL = Worksheets("MTBank").Range("MTBank.SeedInterArrival").value
+    STREAM_SERVICE = Worksheets("MTBank").Range("MTBank.SeedService").value
+    
+    min_tellers = Worksheets("MTBank").Range("MTBank.MinTellers").value
+    max_tellers = Worksheets("MTBank").Range("MTBank.MaxTellers").value
+
+    mean_interarrival = Worksheets("MTBank").Range("MTBank.MeanInterArrival").value
+    mean_service = Worksheets("MTBank").Range("MTBank.MeanService").value
+    machining_hours = Worksheets("MTBank").Range("MTBank.LengthDoorsOpen").value
+ 
+    Dim row As Integer
+    Dim col As Integer
+    row = 15
+    col = 1
+    
+    'Initialize the random seeds
+        
+    Call InitializeRNSeed
+
+    
+    '/* Run the simulation varying the number of tellers. */
+
+    For num_tellers = min_teller To max_tellers
+
+        '/* Initialize simlib */
+
+        Call init_simlib
+
+        '/* Set maxatr = max(maximum number of attributes per record, 4) */
+
+        maxatr = 4  '/* NEVER SET maxatr TO BE SMALLER THAN 4. */
+
+        '/* Schedule the first arrival. */
+
+        Call event_schedule(Expon(mean_interarrival, STREAM_INTERARRIVAL), EVENT_ARRIVAL)
+
+        '/* Schedule the bank closing.  (Note need for consistency of units.) */
+
+        Call event_schedule(20 * machining_hours, EVENT_CLOSE_DOORS)
+
+        '/* Run the simulation while the event list is not empty. */
+
+        Do While (list_size(LIST_EVENT) <> 0)
+
+            '/* Determine the next event. */
+
+            Call timing
+
+            '/* Invoke the appropriate event function. */
+
+            Select Case next_event_type
+
+                Case EVENT_ARRIVAL:
+                    Call arrive
+        
+                Case EVENT_DEPARTURE:
+                    Call depart((transfer(3)))   '/* transfer[3] is teller number. */
+                    
+                Case EVENT_CLOSE_DOORS:
+                    Call event_cancel(EVENT_ARRIVAL)
+        
+            End Select
+        Loop
+
+        '/* Report results for the simulation with num_tellers tellers. */
+
+        Call report(row, col)
+        row = row + 8
+    Next num_tellers
+
+End Sub
+
+
+Private Sub arrive()  '/* Event function for arrival of a customer to the bank. */
+
+    Dim teller As Integer
+
+    '/* Schedule next arrival. */
+
+    Call event_schedule(sim_time + Expon(mean_interarrival, STREAM_INTERARRIVAL), EVENT_ARRIVAL)
+
+    '/* If a teller is idle, start service on the arriving customer. */
+
+    For teller = 1 To num_tellers
+
+        If (list_size(num_tellers + teller) = 0) Then
+
+            '/* This teller is idle, so customer has delay of zero. */
+
+            Call sampst(0#, SAMPST_DELAYS)
+
+            '/* Make this teller busy (attributes are irrelevant). */
+
+            Call list_file(FIRST, num_tellers + teller)
+
+            '/* Schedule a service completion. */
+
+            transfer(3) = teller  '/* Define third attribute of type-two event-
+                                  '    list record before event_schedule. */
+
+            Call event_schedule(sim_time + Expon(mean_service, STREAM_SERVICE), EVENT_DEPARTURE)
+
+            '/* Return control to the main function. */
+
+            Exit Sub
+        End If
+    Next teller
+
+    '/* All tellers are busy, so find the shortest queue (leftmost shortest in
+    '   case of ties). */
+
+    shortest_length = list_size(1)
+    shortest_queue = 1
+    For teller = 2 To num_tellers
+        If (list_size(teller) < shortest_length) Then
+            shortest_length = list_size(teller)
+            shortest_queue = teller
+        End If
+    Next teller
+    '/* Place the customer at the end of the leftmost shortest queue. */
+
+    
+    
+    transfer(1) = sim_time
+    Call list_file(LAST, shortest_queue)
+End Sub
+
+
+Private Sub depart(teller As Integer)   '/* Departure event function. */
+
+    '/* Check to see whether the queue for teller "teller" is empty. */
+
+    If (list_size(teller) = 0) Then
+
+        '/* The queue is empty, so make the teller idle. */
+
+        Call list_remove(FIRST, num_tellers + teller)
+
+    Else
+
+        '/* The queue is not empty, so start service on a customer. */
+
+        Call list_remove(FIRST, teller)
+        Call sampst(sim_time - transfer(1), SAMPST_DELAYS)
+        transfer(3) = teller  '/* Define before event_schedule. */
+        Call event_schedule(sim_time + Expon(mean_service, STREAM_SERVICE), EVENT_DEPARTURE)
+    End If
+
+    '/* Let a customer from the end of another queue jockey to the end of this
+    '   queue, if possible. */
+
+    Call jockey(teller)
+End Sub
+
+
+Public Sub jockey(teller As Integer)  '/* Jockey a customer to the end of queue "teller" from
+                                      ' the end of another queue, if possible. */
+                                      
+    Dim jumper As Integer
+    Dim min_distance As Integer
+    Dim ni As Integer
+    Dim nj As Integer
+    Dim other_teller As Integer
+    Dim distance As Integer
+
+    '/* Find the number, jumper, of the queue whose last customer will jockey to
+    '   queue or teller "teller", if there is such a customer. */
+
+    jumper = 0
+    min_distance = 1000
+    ni = list_size(teller) + list_size(num_tellers + teller)
+
+    '/* Scan all the queues from left to right. */
+
+    For other_teller = 1 To num_tellers
+
+        nj = list_size(other_teller) + list_size(num_tellers + other_teller)
+        distance = Abs(teller - other_teller)
+
+        '/* Check whether the customer at the end of queue other_teller qualifies
+        '   for being the jockeying choice so far. */
+
+        If ((other_teller <> teller) And (nj > ni + 1) And (distance < min_distance)) Then
+
+            '/* The customer at the end of queue other_teller is our choice so
+            '   far for the jockeying customer, so remember his queue number and
+            '   its distance from the destination queue. */
+
+            jumper = other_teller
+            min_distance = distance
+        End If
+    Next other_teller
+
+    '/* Check to see whether a jockeying customer was found. */
+
+    If (jumper > 0) Then
+
+        '/* A jockeying customer was found, so remove him from his queue. */
+
+        Call list_remove(LAST, jumper)
+
+        '/* Check to see whether the teller of his new queue is busy. */
+
+        If (list_size(num_tellers + teller) > 0) Then
+
+            '/* The teller of his new queue is busy, so place the customer at the
+            '   end of this queue. */
+
+            Call list_file(LAST, teller)
+
+        Else
+
+            '/* The teller of his new queue is idle, so tally the jockeying
+            '   customer 's delay, make the teller busy, and start service. */
+
+            Call sampst(sim_time - transfer(1), SAMPST_DELAYS)
+            Call list_file(FIRST, num_tellers + teller)
+            transfer(3) = teller  '/* Define before event_schedule. */
+            Call event_schedule(sim_time + Expon(mean_service, STREAM_SERVICE), EVENT_DEPARTURE)
+        End If
+    End If
+End Sub
+
+
+Public Sub report(row As Integer, col As Integer)  '/* Report generator function. */
+
+    Dim teller As Integer
+    Dim avg_num_in_queue As Double
+
+    '/* Compute and write out estimates of desired measures of performance. */
+
+    avg_num_in_queue = 0#
+    For teller = 1 To num_tellers
+        avg_num_in_queue = avg_num_in_queue + filest(teller)
+    Next teller
+        
+    With Worksheets("MTBank")
+        .Cells(row, col) = "With " & num_tellers & " tellers, average number in queue = " & avg_num_in_queue
+        .Cells(row + 2, col) = "Delays in queue, in minutes:"
+        .Cells(row + 4, col) = "Sample variable number"
+        .Cells(row + 4, col + 1) = "Average"
+        .Cells(row + 4, col + 2) = "Number of values"
+        .Cells(row + 4, col + 3) = "Maximum"
+        .Cells(row + 4, col + 4) = "Minimum"
+    End With
+
+    Call out_sampst("MTBank", row + 5, 1, SAMPST_DELAYS, SAMPST_DELAYS)
+End Sub
+
+
+
+***Multiteller bank with separate queues & jockeying								
+								
+Parameter Input								
+								
+Number of Tellers	4	to 	7			Stream		
+Mean Interarrival Time	1	 minutes				Stream of Interarrival	4	
+Mean Service Time	4.5	 minutes				Stream of Service	10	
+Bank Closes After 	8	 hours						
+								
+								
+								
+								
+Simulation Output								
+								
+With 4 tellers, average number in queue = 29.6614984384131								
+								
+Delays in queue, in minutes:								
+								
+Sample variable number	Average	Number of values	Maximum	Minimum				
+1	34.917	493	142.527	0				
+								
+								
+With 5 tellers, average number in queue = 1.86157887274082								
+								
+Delays in queue, in minutes:								
+								
+Sample variable number	Average	Number of values	Maximum	Minimum				
+1	2.140013716	431	19.65450575	0				
+								
+								
+With 6 tellers, average number in queue = 0.561800962583574								
+								
+Delays in queue, in minutes:								
+								
+Sample variable number	Average	Number of values	Maximum	Minimum				
+1	0.678661929	438	14.83907119	0				
+								
+								
+With 7 tellers, average number in queue = 0.582782352931919								
+								
+Delays in queue, in minutes:								
+								
+Sample variable number	Average	Number of values	Maximum	Minimum				
+1	0.565961504	509	10.40314084	0				
+
+
+

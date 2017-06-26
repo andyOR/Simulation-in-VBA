@@ -32,7 +32,7 @@ This course provided an introduction to Monte Carlo and discrete-event simulatio
 ### 4. Multiteller bank with separate queues & jockeying
 #### A bank system with different number tellers for servicing customers is a typical queueing system example. In this case, we silumated a multi teller bank with different number of tellers and calculated different performance metrics with each one of them. For e.g. a bank may use less number of tellers than needed to decrease the cost but it can lead to longer customer delays and alienation from customer. Using this simulation, bank can decide number of tellers needed to provide the adequate service to the customers who wants to cash a check or make saving deposit. This system included jockeying where customers are allowed to move from one queue to other if it seems to be their advantage.
 
-######## Questions answered through this simulation case.
+#### Questions answered through this simulation case.
 #### a. What are average number in queues with different tellers (4, 5, 6 and 7)?
 #### b. What is the average delay in queue with different tellers (4, 5, 6 and 7)?
 #### c. What is the maximum and minimum delay faced by a customer?
