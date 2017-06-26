@@ -38,5 +38,16 @@ This course provided an introduction to Monte Carlo and discrete-event simulatio
 #### c. What is the maximum and minimum delay faced by a customer?
 #### d. What is the highest and lowest number of customers served in a day with different tellers?
 
+### 5. Job Shop Model
+#### The job shop model is another complicated simulation model for simulating jobs as they move through the shop. There are multiple types of jobs, each of which visit different stations in a different order. The jobs arrive at the shop with different mean inter arrival time, each job has different probability of arriving into the system and different mean service time. Each station has different number of machines. In our simulation, we used three different jobs with different number of tasks to be performed. There were five stations with three, two, four, three and one machines respectively. 
+
+#### Questions answered through this simulation case.
+#### a. What is the expected average delay in queue at each station?
+#### b. What is the expected average number in the queue for each station?
+#### c. What is the expectation utilization at each station?
+
+
+
+
 
 
