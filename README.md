@@ -22,8 +22,7 @@ This course provided an introduction to Monte Carlo and discrete-event simulatio
 #### c. which policies cost back orders and which ones are safe? 
 
 ### 3. M/M/1 Queue Simulation
-#### This simulation represents the queue length in a system having single server, where arrivals are determined by a Poisson process and job service time have an exponential distribution. The variables used in the system:
-#### Entities - Customers,Resources - server and queue,  Attributes - arrival and service time, Performance - Avg Q(t): number of customers in queue at time t, Avg D(t): waiting time for ith customer, Avg B(t): server utilization
+#### This simulation represents the queue length in a system having single server, where arrivals are determined by a Poisson process and job service time have an exponential distribution. The variables used in the system: Entities - Customers,Resources - server and queue,  Attributes - arrival and service time, Performance - Avg Q(t): number of customers in queue at time t, Avg D(t): waiting time for ith customer, Avg B(t): server utilization
 
 #### Questions answered through this simulation case.
 #### a. What is the average wait time in queue? (CTS or DTS)
