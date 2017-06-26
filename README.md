@@ -22,11 +22,21 @@ This course provided an introduction to Monte Carlo and discrete-event simulatio
 #### c. which policies cost back orders and which ones are safe? 
 
 ### 3. M/M/1 Queue Simulation
-#### This simulation represents the queue length in a system having single server, where arrivals are determined by a Poisson process and job service time have an exponential distribution. The variables used in the system: Entities - Customers,Resources - server and queue,  Attributes - arrival and service time, Performance - Avg Q(t): number of customers in queue at time t, Avg D(t): waiting time for ith customer, Avg B(t): server utilization
+#### This simulation represents the queue length in a system having single server, where arrivals are determined by a Poisson process and job service time have an exponential distribution. The variables used in the system: Entities - Customers, Resources - server and queue,  Attributes - arrival and service time, Performance - Avg Q(t): number of customers in queue at time t, Avg D(t): waiting time for ith customer, Avg B(t): server utilization
 
 #### Questions answered through this simulation case.
 #### a. What is the average wait time in queue? (CTS or DTS)
 #### b. What is the average queue length? (CTS or DTS)
 #### c. What is the server utilization in the system? (CTS)
+
+### 4. Multiteller bank with separate queues & jockeying
+#### A bank system with different number tellers for servicing customers is a typical queueing system example. In this case, we silumated a multi teller bank with different number of tellers and calculated different performance metrics with each one of them. For e.g. a bank may use less number of tellers than needed to decrease the cost but it can lead to longer customer delays and alienation from customer. Using this simulation, bank can decide number of tellers needed to provide the adequate service to the customers who wants to cash a check or make saving deposit. This system included jockeying where customers are allowed to move from one queue to other if it seems to be their advantage.
+
+######## Questions answered through this simulation case.
+#### a. What are average number in queues with different tellers (4, 5, 6 and 7)?
+#### b. What is the average delay in queue with different tellers (4, 5, 6 and 7)?
+#### c. What is the maximum and minimum delay faced by a customer?
+#### d. What is the highest and lowest number of customers served in a day with different tellers?
+
 
 
