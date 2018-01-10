@@ -1,4 +1,4 @@
-# Simulation in Visual Basic Application
+# Simulation in Excel Visual Basic Application
 
 ## This repository contains codes, scripts and simulation strategies learnt in the class SC&IS 545 (Supply Chain & Information System) by Dr. Russell Barton at Penn State.
 This course provided an introduction to Monte Carlo and discrete-event simulation
